@@ -67,10 +67,11 @@ flowchart TB
       timeZone.ts         # listIanaTimeZones, normalize, isValid
       formatInZone.ts     # formatInstantInZone, formatTimeZoneAbbreviation
       zoneShortcuts.ts    # ZONE_SHORTCUTS, shortcutSelectLabel
+      wallTimePin.ts      # Luxon wall date/time ↔ UTC ms for pins
     state/
-      clocksState.ts      # immutable state: localOffsetHours + extras (iana + offsetHours)
+      clocksState.ts      # localPinnedUtcMs + extras (iana + pinnedUtcMs)
     display/
-      clockSnapshots.ts   # buildClockSnapshots(now, localIana, localOffset, extras)
+      clockSnapshots.ts   # buildClockSnapshots(now, localIana, localPin, extras)
     ui/
       clockApp.ts         # DOM, interval tick, select/filter wiring
       timeZoneOptions.ts  # filteredIanaZones
@@ -88,6 +89,7 @@ flowchart TB
 | UI | Vanilla TS + DOM | No React in v1 |
 | Styles | Plain CSS | `src/style.css`, responsive flex layout |
 | Tests | Vitest 3 + jsdom | `npm test`; DOM smoke in `clockApp.test.ts` |
+| Manual wall time | **Luxon** + `@types/luxon` | `wallTimeToUtcMs` / `utcMsToWallParts` / `nowWallParts` |
 | Container build | Node 22 Alpine | `npm ci`, **`npm test` gate**, then `vite build` |
 | Runtime image | nginx 1.27 Alpine | Static `dist/`; custom `nginx.conf` |
 
@@ -99,8 +101,8 @@ Linting (ESLint/Prettier) is **not** wired in v1; optional follow-up.
 
 ### 5.1 Clock model
 
-- **Local** clock: `Intl.DateTimeFormat().resolvedOptions().timeZone`; not removable. **`localOffsetHours`** (−23…+23, clamped) shifts only the **rendered** instant for that card.
-- **Extra** clocks: `{ id, ianaTimeZone, offsetHours }[]` in immutable state; default initial zone **`UTC`** with **`offsetHours: 0`**; **`+`** appends another (defaults **`UTC`**, offset **0**); **Remove** deletes one extra.
+- **Local** clock: `Intl.DateTimeFormat().resolvedOptions().timeZone`; not removable. **`localPinnedUtcMs`** (`null` = live) fixes the **displayed** instant for that card.
+- **Extra** clocks: `{ id, ianaTimeZone, pinnedUtcMs }[]`; default **`UTC`** with **`pinnedUtcMs: null`**; **`+`** appends another; **Remove** deletes one extra.
 
 ### 5.2 Tick vs DOM updates
 
@@ -115,11 +117,11 @@ Linting (ESLint/Prettier) is **not** wired in v1; optional follow-up.
 - **Filter:** `filteredIanaZones` merges shortcut matches + substring match on IANA; prepends **selected** only when it **matches the query** (or empty query / cap edge case) so unrelated zones do not jump to the top.
 - **Invalid IANA:** `normalizeIanaTimeZone` → **`UTC`** (silent fallback; no toast in v1).
 
-### 5.4 Display offset (hours)
+### 5.4 Manual wall time (Luxon)
 
-- **`buildClockSnapshots(now, localIana, localOffsetHours, extras)`** applies `shiftedInstant = now + offsetHours×1h` per face before `formatInstantInZone`.
-- **UI:** `<input type="number" min=-23 max=23 step=1>` per card; `change` updates state and re-runs `refreshTimesOnly` (no full row rebuild).
-- **Offset line:** when non-zero, `Intl` offset string is suffixed with **`· display ±N h`** for clarity.
+- **`buildClockSnapshots(now, localIana, localPinnedUtcMs, extras)`** passes **`new Date(pinnedUtcMs)`** when a pin exists, otherwise **`now`**, into `formatInstantInZone` for that face.
+- **UI:** per card, **date** (`type="date"`), **hour** (0–23), **minute** (0–59), **Apply** → `wallTimeToUtcMs(zone, parts)`; invalid DST gaps → `alert`. **Use live time** clears the pin.
+- **IANA line:** when pinned, caption includes **`· fixed time`**.
 
 ---
 
@@ -130,10 +132,11 @@ Linting (ESLint/Prettier) is **not** wired in v1; optional follow-up.
 | IANA helpers | `timeZone.test.ts` | List, validate, normalize, sort |
 | Formatting | `formatInZone.test.ts` | Zoned time/date/offset/abbreviation |
 | Shortcuts | `zoneShortcuts.test.ts` | EST/IST mapping, unique `abbr`, **every distinct shortcut IANA valid** |
-| State | `clocksState.test.ts` | Init, add, remove, set zone, **offsets** (`clamp`, local + extra), injectable ids |
-| Snapshots | `clockSnapshots.test.ts` | Order local→extras, winter NY abbr, **shifted display** vs base |
+| Wall pins | `wallTimePin.test.ts` | Round-trip Paris winter, UTC noon, `nowWallParts` |
+| State | `clocksState.test.ts` | Init, add, remove, set zone, **pins** (local + extra), injectable ids |
+| Snapshots | `clockSnapshots.test.ts` | Order local→extras, winter NY abbr, **pinned** vs live |
 | Filter | `timeZoneOptions.test.ts` | Shortcuts order, EST/IST match, cap + prepend |
-| UI | `clockApp.test.ts` | Two cards on load, **two offset inputs**, `+` adds third |
+| UI | `clockApp.test.ts` | Two cards on load, **two Apply buttons** (manual time), `+` adds third |
 
 **Docker build** runs `npm test` so regressions block the image.
 
@@ -157,7 +160,7 @@ Linting (ESLint/Prettier) is **not** wired in v1; optional follow-up.
 ## 9. Known limitations & follow-ups
 
 - **Abbreviation ambiguity** outside the curated table (e.g. multiple “CST” meanings) is only resolved for rows present in `ZONE_SHORTCUTS`.
-- **No persistence** (see PRD M4): refresh loses extra clocks and **display offsets** (reset to defaults).
+- **No persistence** (see PRD M4): refresh loses extra clocks and **pins** (reset to live).
 - **No ESLint/CI workflow** in repo yet; tests are the primary gate in Docker build.
 
 ---

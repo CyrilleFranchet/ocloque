@@ -58,8 +58,9 @@
 - Updated [`docs/PRD.md`](./PRD.md): status **Implemented (v1)**, locked decisions, milestones marked done, FR/UX aligned with shipped behavior; summary §7 points to TECH-PLAN.
 - README links to TECH-PLAN.
 
-### Display offset (hours)
+### Manual wall time (replaces hour offsets)
 
-- State: `localOffsetHours` + per-extra `offsetHours` (clamped −23…+23); `setLocalOffsetHours`, `setZonedClockOffsetHours`.
-- `buildClockSnapshots` shifts the instant before `Intl` formatting; offset hint on the offset line when ≠ 0.
-- UI: number input on local and each extra card; PRD §5.3 / TECH-PLAN §5.4 updated.
+- Removed whole-hour **offset** controls; added **date + hour + minute** in the clock’s zone, **Apply** / **Use live time**, using **Luxon** (`src/time/wallTimePin.ts`).
+- State: `localPinnedUtcMs` + per-extra `pinnedUtcMs`; `setLocalPinnedUtcMs`, `setZonedClockPinnedUtcMs`.
+- `buildClockSnapshots` uses pinned UTC ms when set; IANA caption shows **`· fixed time`** when pinned.
+- Docs (PRD §5.3, TECH-PLAN §5.4, README) updated; Vitest covers `wallTimePin` and snapshot pin behavior.

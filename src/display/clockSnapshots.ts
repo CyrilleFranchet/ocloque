@@ -5,60 +5,64 @@ export type ClockFaceSnapshot = {
   role: 'local' | 'extra';
   /** Primary title (abbreviation-focused). */
   headingLabel: string;
-  /** IANA identifier shown as a secondary line. */
+  /** IANA identifier shown as a secondary line; appends `· fixed time` when pinned. */
   ianaCaption: string;
   zoneId: string;
   time: string;
   dateLong: string;
   offsetLabel: string;
   abbreviation: string;
+  /** `pinned` when showing a user-chosen wall time as a frozen instant. */
+  displayMode: 'live' | 'pinned';
 };
 
-function shiftedInstant(instant: Date, offsetHours: number): Date {
-  return new Date(instant.getTime() + offsetHours * 3_600_000);
+function instantForFace(now: Date, pinnedUtcMs: number | null): Date {
+  return pinnedUtcMs != null ? new Date(pinnedUtcMs) : now;
 }
 
-function withDisplayOffsetNote(offsetLabel: string, offsetHours: number): string {
-  if (offsetHours === 0) return offsetLabel;
-  const sign = offsetHours > 0 ? '+' : '';
-  return `${offsetLabel} · display ${sign}${offsetHours} h`;
+function captionWithPin(ianaId: string, pinned: boolean): string {
+  return pinned ? `${ianaId} · fixed time` : ianaId;
 }
 
 export function buildClockSnapshots(
   instant: Date,
   localIanaTimeZone: string,
-  localOffsetHours: number,
-  extraClocks: { id: string; ianaTimeZone: string; offsetHours: number }[],
+  localPinnedUtcMs: number | null,
+  extraClocks: { id: string; ianaTimeZone: string; pinnedUtcMs: number | null }[],
 ): ClockFaceSnapshot[] {
-  const localInstant = shiftedInstant(instant, localOffsetHours);
+  const localInstant = instantForFace(instant, localPinnedUtcMs);
+  const localPinned = localPinnedUtcMs != null;
   const local = formatInstantInZone(localInstant, localIanaTimeZone);
   const localAbbr = local.abbreviation || local.timeZoneId;
   const localFace: ClockFaceSnapshot = {
     id: 'local',
     role: 'local',
     headingLabel: `Local — ${localAbbr}`,
-    ianaCaption: local.timeZoneId,
+    ianaCaption: captionWithPin(local.timeZoneId, localPinned),
     zoneId: local.timeZoneId,
     time: local.time,
     dateLong: local.dateLong,
-    offsetLabel: withDisplayOffsetNote(local.offsetLabel, localOffsetHours),
+    offsetLabel: local.offsetLabel,
     abbreviation: localAbbr,
+    displayMode: localPinned ? ('pinned' as const) : ('live' as const),
   };
 
   const extras = extraClocks.map((c) => {
-    const j = shiftedInstant(instant, c.offsetHours);
+    const j = instantForFace(instant, c.pinnedUtcMs);
+    const pinned = c.pinnedUtcMs != null;
     const z = formatInstantInZone(j, c.ianaTimeZone);
     const abbr = z.abbreviation || z.timeZoneId;
     return {
       id: c.id,
       role: 'extra' as const,
       headingLabel: abbr,
-      ianaCaption: z.timeZoneId,
+      ianaCaption: captionWithPin(z.timeZoneId, pinned),
       zoneId: c.ianaTimeZone,
       time: z.time,
       dateLong: z.dateLong,
-      offsetLabel: withDisplayOffsetNote(z.offsetLabel, c.offsetHours),
+      offsetLabel: z.offsetLabel,
       abbreviation: abbr,
+      displayMode: pinned ? ('pinned' as const) : ('live' as const),
     };
   });
 

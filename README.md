@@ -1,6 +1,6 @@
 # ocloque — World clocks
 
-Single-page app: **local time** on the left, **one or more IANA time zones** on the right, with a **+** button to add clocks. Clock titles use **short names** from the browser (`EST`, `IST`, …) with the **IANA** id below; the time zone picker includes **abbreviation shortcuts** (e.g. EST → `America/New_York`) for quicker search. Each clock has a **display offset (hours)** control (−23…+23) to shift the shown time without changing the zone. Served as static files behind **nginx** in Docker.
+Single-page app: **local time** on the left, **one or more IANA time zones** on the right, with a **+** button to add clocks. Clock titles use **short names** from the browser (`EST`, `IST`, …) with the **IANA** id below; the time zone picker includes **abbreviation shortcuts** (e.g. EST → `America/New_York`) for quicker search. Each clock can **set time in this zone** (calendar date + hour + minute, **Apply**) to pin the display to that wall time, or **Use live time** to follow the clock again. Served as static files behind **nginx** in Docker.
 
 ## Requirements
 

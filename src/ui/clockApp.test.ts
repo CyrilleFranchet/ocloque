@@ -18,7 +18,7 @@ describe('createClockApp', () => {
     });
     const cards = root.querySelectorAll('.clock-card');
     expect(cards.length).toBe(2);
-    expect(root.querySelectorAll('.offset-hours').length).toBe(2);
+    expect(root.querySelectorAll('.pin-apply').length).toBe(2);
     expect(root.querySelector('[data-clock-id="local"]')).toBeTruthy();
     expect(root.querySelector('[data-clock-id="extra-1"]')).toBeTruthy();
     app.dispose();

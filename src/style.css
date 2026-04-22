@@ -177,18 +177,45 @@ body {
   outline-offset: 2px;
 }
 
-.offset-hours-label {
+.clock-manual-time {
+  margin-top: 0.65rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  margin-top: 0.35rem;
-  font-size: 0.8rem;
+  gap: 0.45rem;
+}
+
+.clock-manual-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.manual-date-label,
+.manual-hm-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.78rem;
   color: var(--muted);
 }
 
-.offset-hours {
-  width: 100%;
-  max-width: 8rem;
+.manual-time-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.manual-time-row .manual-hm-label {
+  flex: 1 1 6rem;
+}
+
+.pin-date,
+.pin-hour,
+.pin-minute {
   border-radius: 8px;
   border: 1px solid var(--border);
   background: var(--bg);
@@ -196,6 +223,40 @@ body {
   padding: 0.4rem 0.5rem;
   font: inherit;
   font-variant-numeric: tabular-nums;
+}
+
+.pin-hour,
+.pin-minute {
+  max-width: 5rem;
+}
+
+.clock-manual-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.15rem;
+}
+
+.pin-apply,
+.pin-clear {
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  padding: 0.35rem 0.65rem;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.pin-apply {
+  background: var(--accent);
+  color: var(--accent-text);
+  border-color: transparent;
+}
+
+.pin-apply:hover,
+.pin-clear:hover {
+  filter: brightness(1.06);
 }
 
 @media (max-width: 640px) {
