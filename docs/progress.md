@@ -16,3 +16,9 @@
 - Added `src/time/formatInZone.ts`: `formatInstantInZone` for clock display (time, long date, offset).
 - Unit tests: `timeZone.test.ts`, `formatInZone.test.ts`.
 - Next: clock list state (add / remove / change zone) with tests.
+
+### Clock list state
+
+- Added `src/state/clocksState.ts`: immutable `createInitialClocksState`, `addZonedClock`, `removeZonedClock`, `setZonedClockTimeZone` with injectable `IdGenerator`.
+- Unit tests in `clocksState.test.ts`.
+- Next: UI layer, snapshot builder, and Docker image.
