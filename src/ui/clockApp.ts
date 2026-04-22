@@ -7,8 +7,10 @@ import {
   type ClocksState,
   type IdGenerator,
 } from '../state/clocksState';
+import { formatTimeZoneAbbreviation } from '../time/formatInZone';
 import { listIanaTimeZones } from '../time/timeZone';
-import { filteredTimeZones } from './timeZoneOptions';
+import { ZONE_SHORTCUTS } from '../time/zoneShortcuts';
+import { filteredIanaZones } from './timeZoneOptions';
 
 export type ClockAppOptions = {
   getLocalTimeZone?: () => string;
@@ -55,12 +57,14 @@ export function createClockApp(root: HTMLElement, options: ClockAppOptions = {})
 
   function fillSelect(select: HTMLSelectElement, clockId: string, selected: string): void {
     const q = filters.get(clockId) ?? '';
-    const opts = filteredTimeZones(allZones, q, selected);
+    const opts = filteredIanaZones(allZones, ZONE_SHORTCUTS, q, selected);
+    const instant = getNow();
     select.replaceChildren();
     for (const z of opts) {
       const o = document.createElement('option');
       o.value = z;
-      o.textContent = z;
+      const abbr = formatTimeZoneAbbreviation(instant, z);
+      o.textContent = abbr && abbr !== z ? `${abbr} — ${z}` : z;
       if (z === selected) o.selected = true;
       select.appendChild(o);
     }
@@ -72,6 +76,7 @@ export function createClockApp(root: HTMLElement, options: ClockAppOptions = {})
     article.dataset.clockId = 'local';
     article.innerHTML = `
       <h2 class="clock-heading"></h2>
+      <p class="clock-iana"></p>
       <p class="clock-time clock-numeric" aria-live="polite"></p>
       <p class="clock-date"></p>
       <p class="clock-offset"></p>
@@ -94,6 +99,7 @@ export function createClockApp(root: HTMLElement, options: ClockAppOptions = {})
         <button type="button" class="clock-remove">Remove</button>
       </div>
       <h2 class="clock-heading"></h2>
+      <p class="clock-iana"></p>
       <p class="clock-time clock-numeric" aria-live="polite"></p>
       <p class="clock-date"></p>
       <p class="clock-offset"></p>
@@ -146,10 +152,12 @@ export function createClockApp(root: HTMLElement, options: ClockAppOptions = {})
       const el = row.querySelector<HTMLElement>(`[data-clock-id="${escapeAttr(s.id)}"]`);
       if (!el) continue;
       const heading = el.querySelector<HTMLElement>('.clock-heading');
+      const ianaEl = el.querySelector<HTMLElement>('.clock-iana');
       const timeEl = el.querySelector<HTMLElement>('.clock-time');
       const dateEl = el.querySelector<HTMLElement>('.clock-date');
       const offEl = el.querySelector<HTMLElement>('.clock-offset');
       if (heading) heading.textContent = s.headingLabel;
+      if (ianaEl) ianaEl.textContent = s.ianaCaption;
       if (timeEl) timeEl.textContent = s.time;
       if (dateEl) dateEl.textContent = s.dateLong;
       if (offEl) offEl.textContent = s.offsetLabel;

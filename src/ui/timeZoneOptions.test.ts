@@ -1,22 +1,32 @@
 import { describe, expect, it } from 'vitest';
-import { filteredTimeZones } from './timeZoneOptions';
+import type { ZoneShortcut } from '../time/zoneShortcuts';
+import { filteredIanaZones } from './timeZoneOptions';
 
-describe('filteredTimeZones', () => {
-  const all = ['Africa/Abidjan', 'Europe/Paris', 'America/New_York', 'UTC'];
+const sampleShortcuts: readonly ZoneShortcut[] = [
+  { abbr: 'EST', description: 'US Eastern', iana: 'America/New_York' },
+  { abbr: 'IST', description: 'India', iana: 'Asia/Kolkata' },
+];
 
-  it('returns all zones when query empty up to limit', () => {
-    expect(filteredTimeZones(all, '', 'UTC', 10)).toEqual(all);
+describe('filteredIanaZones', () => {
+  const all = ['Africa/Abidjan', 'Europe/Paris', 'America/New_York', 'Asia/Kolkata', 'UTC'];
+
+  it('lists shortcut zones first when the filter is empty', () => {
+    const out = filteredIanaZones(all, sampleShortcuts, '', 'UTC', 10);
+    expect(out[0]).toBe('America/New_York');
+    expect(out[1]).toBe('Asia/Kolkata');
+    expect(out).toContain('UTC');
   });
 
-  it('filters by substring', () => {
-    expect(filteredTimeZones(all, 'paris', 'Europe/Paris', 10)).toEqual(['Europe/Paris']);
+  it('matches IANA paths and abbreviation tokens', () => {
+    expect(filteredIanaZones(all, sampleShortcuts, 'paris', 'UTC', 10)).toEqual(['Europe/Paris']);
+    expect(filteredIanaZones(all, sampleShortcuts, 'est', 'UTC', 10)).toContain('America/New_York');
+    expect(filteredIanaZones(all, sampleShortcuts, 'ist', 'UTC', 10)).toContain('Asia/Kolkata');
   });
 
-  it('prepends selected when not in capped results', () => {
+  it('prepends selected when it matches the filter but would fall outside the cap', () => {
     const many = Array.from({ length: 100 }, (_, i) => `Zone/Num_${i}`);
-    many.push('Europe/Paris');
-    const out = filteredTimeZones(many, 'Num_', 'Europe/Paris', 5);
-    expect(out[0]).toBe('Europe/Paris');
-    expect(out.length).toBeLessThanOrEqual(5);
+    const out = filteredIanaZones(many, [], 'Num_', 'Zone/Num_3', 3);
+    expect(out[0]).toBe('Zone/Num_3');
+    expect(out.length).toBe(3);
   });
 });

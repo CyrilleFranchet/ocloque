@@ -77,8 +77,9 @@ A **single web page** served from a **Dockerized web server** that displays:
 
 ### 5.2 Timezone selection
 
-- Use **IANA time zone identifiers** in logic (e.g. `America/Los_Angeles`).
+- Use **IANA time zone identifiers** as the stored value and for all `Intl` calculations (e.g. `America/Los_Angeles`).
 - Picker can be: searchable `<select>` populated from `Intl.supportedValuesOf('timeZone')` where available, or a curated list + “Other…” for v1.
+- **Civil abbreviations (EST, IST, PST, …):** the UI shows a **short zone name** from `Intl` (e.g. `EST`, `IST`) as the primary clock title, with the **IANA id** on a second line. The picker lists **shortcut rows** (e.g. “EST — US Eastern” → `America/New_York`) so users can search by abbreviation or region name; each shortcut maps to **one** canonical IANA zone (documented in code). Ambiguous tokens (e.g. **CST** for US Central vs other regions) are resolved by explicit shortcut descriptions, not by guessing from the abbreviation alone.
 
 ### 5.3 Docker delivery
 
@@ -89,7 +90,7 @@ A **single web page** served from a **Dockerized web server** that displays:
 
 ## 6. UX / UI notes
 
-- **Visual hierarchy:** Local clock slightly emphasized (label “Local” or device timezone name).
+- **Visual hierarchy:** Local clock slightly emphasized; primary label uses **“Local — {abbr}”** (abbreviation from `Intl` for the device zone) with **IANA** as secondary text. Extra clocks use **abbreviation as the main title** and **IANA** underneath.
 - **Responsive:** Horizontal row on wide screens; stacked or horizontal scroll on small screens.
 - **Controls:** Primary “+” near the clock row header; per-clock overflow menu or explicit remove icon to avoid mis-clicks.
 - **Copy:** American English strings in UI (“Time zone”, “Add clock”, “Remove”).
@@ -127,6 +128,8 @@ flowchart LR
 | Styling | CSS modules or Tailwind | Tailwind speeds layout; plain CSS is fine for one page |
 | Time APIs | `Intl.DateTimeFormat` + `timeZone` option | Broad support; correct DST for IANA zones |
 | Zone list | `Intl.supportedValuesOf('timeZone')` when defined; else polyfill / static subset | Feature detection in one utility |
+| Abbreviations | `timeZoneName: 'short'` via `formatToParts` | Display-only; may vary by engine (e.g. `EST` vs `GMT-5`) |
+| Shortcuts | Curated `{ abbr, description, iana }[]` merged into filter results | Search “IST”, “EST”, etc. without ambiguous auto-inference beyond the table |
 
 ### 7.3 Front-end state model (conceptual)
 

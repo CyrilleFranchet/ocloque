@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatInstantInZone } from './formatInZone';
+import { formatInstantInZone, formatTimeZoneAbbreviation } from './formatInZone';
 
 describe('formatInstantInZone', () => {
   it('formats a fixed instant in UTC', () => {
@@ -23,5 +23,14 @@ describe('formatInstantInZone', () => {
     expect(out.timeZoneId).toBe('America/New_York');
     expect(out.time).toMatch(/\d{1,2}:\d{2}:\d{2}/);
     expect(out.dateLong.length).toBeGreaterThan(10);
+    expect(out.abbreviation.length).toBeGreaterThan(0);
+  });
+});
+
+describe('formatTimeZoneAbbreviation', () => {
+  it('returns a short label for India', () => {
+    const instant = new Date('2024-06-15T12:00:00.000Z');
+    const abbr = formatTimeZoneAbbreviation(instant, 'Asia/Kolkata');
+    expect(abbr).toMatch(/IST|GMT\+5:30/i);
   });
 });

@@ -5,6 +5,8 @@ export type ZonedInstantDisplay = {
   dateLong: string;
   timeZoneId: string;
   offsetLabel: string;
+  /** Short name from Intl (e.g. EST, IST); may include numeric offsets on some engines. */
+  abbreviation: string;
 };
 
 function offsetLabelFor(date: Date, ianaTimeZone: string): string {
@@ -14,6 +16,15 @@ function offsetLabelFor(date: Date, ianaTimeZone: string): string {
   }).formatToParts(date);
   const name = parts.find((p) => p.type === 'timeZoneName')?.value;
   return name ?? '';
+}
+
+export function formatTimeZoneAbbreviation(instant: Date, ianaTimeZone: string): string {
+  const timeZoneId = normalizeIanaTimeZone(ianaTimeZone);
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: timeZoneId,
+    timeZoneName: 'short',
+  }).formatToParts(instant);
+  return parts.find((p) => p.type === 'timeZoneName')?.value?.trim() ?? '';
 }
 
 export function formatInstantInZone(
@@ -40,6 +51,7 @@ export function formatInstantInZone(
   }).format(instant);
 
   const offsetLabel = offsetLabelFor(instant, timeZoneId);
+  const abbreviation = formatTimeZoneAbbreviation(instant, timeZoneId);
 
-  return { time, dateLong, timeZoneId, offsetLabel };
+  return { time, dateLong, timeZoneId, offsetLabel, abbreviation };
 }

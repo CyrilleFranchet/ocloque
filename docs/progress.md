@@ -39,3 +39,10 @@
 - Added `docker-compose.yml` mapping **8080 → 80**.
 - Added `.dockerignore` and root `README.md` with run instructions.
 - Status: feature-complete per PRD v1 (no persistence).
+
+### Abbreviations and shortcuts
+
+- `formatInstantInZone` now exposes an **abbreviation** (`Intl` `timeZoneName: 'short'`).
+- Clock cards show **abbr + IANA**; the select lists **`ABBR — IANA`** options.
+- Added `src/time/zoneShortcuts.ts` (EST, IST, PST, … → canonical IANA) and `filteredIanaZones` so the filter matches abbreviations and shortcut descriptions.
+- PRD and README updated accordingly.
