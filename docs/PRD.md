@@ -59,6 +59,7 @@ A **single web page** served from a **Dockerized web server** that displays:
 3. **As a user**, I want to tap **“+”** to **add another timezone clock** when I follow more than one region.
 4. **As a user**, I want to **remove** a clock I added (except the fixed local one) so the UI stays tidy.
 5. **As a user**, I want **clear names** (abbreviation / offset + IANA) so I know which clock is which.
+6. **As a user**, I want to **shift the displayed time** on any clock by whole hours (e.g. for a quick “what if +3h” view) without changing the underlying IANA zone.
 
 ---
 
@@ -72,9 +73,11 @@ A **single web page** served from a **Dockerized web server** that displays:
 | FR-2 | **Local clock** is **non-removable** and **always uses the browser’s local timezone**. |
 | FR-3 | **Configurable clocks** appear **to the right** of the local clock (or below on narrow viewports). |
 | FR-4 | **“+”** adds a new configurable clock with default zone **`UTC`** (v1). |
-| FR-5 | Each configurable clock has: **filter** + **timezone** `<select>`, **current time**, **date**, **offset**, **Remove** (except local). Picker options use **stable shortcut labels** where defined (see §5.2). |
-| FR-6 | Clocks **update every second** (v1). |
-| FR-7 | Invalid or unsupported IANA values **fall back to `UTC`** in logic (silent in UI v1). |
+| FR-5 | Each configurable clock has: **filter** + **timezone** `<select>`, **display offset (hours)** control, **current time**, **date**, **offset**, **Remove** (except local). Picker options use **stable shortcut labels** where defined (see §5.2). |
+| FR-6 | The **local** clock has the same **display offset (hours)** control (does not change the OS timezone; only shifts the rendered instant for that card). |
+| FR-7 | Clocks **update every second** (v1). |
+| FR-8 | Invalid or unsupported IANA values **fall back to `UTC`** in logic (silent in UI v1). |
+| FR-9 | **Display offset** is stored in **whole hours** in the inclusive range **−23 … +23**; values outside the range are **clamped**; offset is **display-only** (applied before `Intl` formatting for that face). |
 
 ### 5.2 Timezone selection
 
@@ -82,7 +85,11 @@ A **single web page** served from a **Dockerized web server** that displays:
 - Picker is backed by **`Intl.supportedValuesOf('timeZone')`** when available, plus a **curated shortcut table** for classic abbreviations and regions.
 - **Civil abbreviations (EST, IST, PST, …):** the UI shows a **short zone name** from `Intl` as the primary clock title where available, with the **IANA id** on a second line. The picker lists shortcuts (US/Canada STD+DST pairs, UK GMT/BST, EU CET/CEST, major hubs in Latin America, Africa, Middle East, Asia, Oceania, etc.); **several abbreviations may map to the same IANA** (e.g. EST+EDT → `America/New_York`), merged into one picker line. Mexico uses **MEX** (not **CST**) to avoid clashing with US Central. **EGY** is used for Egypt instead of overloading **EET**. Every shortcut IANA is validated in unit tests.
 
-### 5.3 Docker delivery
+### 5.3 Display offset (hours)
+
+- Offsets apply to the **same** IANA (or local) zone: the app uses `instant + offsetHours × 1 hour` and then runs `Intl` formatting in that zone. This is a **presentation shift** only (not a second time zone; **not persisted** in v1).
+
+### 5.4 Docker delivery
 
 - Image runs a web server that serves `index.html` and static assets on a **documented port** (e.g. `8080` via Compose).
 - README includes **build** and **run** instructions; image build runs **tests** before emitting assets.
@@ -93,8 +100,8 @@ A **single web page** served from a **Dockerized web server** that displays:
 
 - **Visual hierarchy:** Local clock slightly emphasized; primary label uses **“Local — {abbr}”** (`Intl` short name for the device zone) with **IANA** as secondary text. Extra clocks use **abbreviation as the main title** and **IANA** underneath.
 - **Responsive:** Horizontal row on wide screens; stacked or horizontal scroll on small screens.
-- **Controls:** Primary “+” in the header; per-clock **Remove** button; **Filter** narrows the IANA/shortcut list in the `<select>`.
-- **Copy:** American English strings in UI (“Time zone”, “Add clock”, “Remove”).
+- **Controls:** Primary “+” in the header; per-clock **Remove** button; **Filter** narrows the IANA/shortcut list in the `<select>`; **Display offset (hours)** number input on **every** clock (local + extras). When offset ≠ 0, the offset line appends a short **“display ±N h”** hint.
+- **Copy:** American English strings in UI (“Time zone”, “Add clock”, “Remove”, “Display offset (hours)”).
 
 ---
 
@@ -141,13 +148,13 @@ flowchart LR
 type ClockId = string; // uuid
 
 interface AppState {
-  localClock: { id: 'local'; kind: 'local' };
-  extraClocks: Array<{ id: ClockId; ianaTimeZone: string }>;
+  localOffsetHours: number; // display shift for the local face, default 0
+  extraClocks: Array<{ id: ClockId; ianaTimeZone: string; offsetHours: number }>;
 }
 ```
 
-- **Initialization:** one extra clock at **`UTC`**.
-- **Add:** append `{ id, ianaTimeZone }` (default **`UTC`**).
+- **Initialization:** `localOffsetHours = 0`; one extra clock at **`UTC`** with `offsetHours = 0`.
+- **Add:** append `{ id, ianaTimeZone, offsetHours: 0 }` (default zone **`UTC`**).
 - **Remove:** filter by `id` (never remove `local`).
 
 ---

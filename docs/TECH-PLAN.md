@@ -68,9 +68,9 @@ flowchart TB
       formatInZone.ts     # formatInstantInZone, formatTimeZoneAbbreviation
       zoneShortcuts.ts    # ZONE_SHORTCUTS, shortcutSelectLabel
     state/
-      clocksState.ts      # immutable extra clock list + id generator injection
+      clocksState.ts      # immutable state: localOffsetHours + extras (iana + offsetHours)
     display/
-      clockSnapshots.ts   # pure buildClockSnapshots(now, local, extras)
+      clockSnapshots.ts   # buildClockSnapshots(now, localIana, localOffset, extras)
     ui/
       clockApp.ts         # DOM, interval tick, select/filter wiring
       timeZoneOptions.ts  # filteredIanaZones
@@ -99,8 +99,8 @@ Linting (ESLint/Prettier) is **not** wired in v1; optional follow-up.
 
 ### 5.1 Clock model
 
-- **Local** clock: `Intl.DateTimeFormat().resolvedOptions().timeZone`; not persisted in app state; not removable.
-- **Extra** clocks: `{ id: string; ianaTimeZone: string }[]` in immutable state; default initial zone **`UTC`**; **`+`** adds another (default **`UTC`**); **Remove** deletes one extra.
+- **Local** clock: `Intl.DateTimeFormat().resolvedOptions().timeZone`; not removable. **`localOffsetHours`** (−23…+23, clamped) shifts only the **rendered** instant for that card.
+- **Extra** clocks: `{ id, ianaTimeZone, offsetHours }[]` in immutable state; default initial zone **`UTC`** with **`offsetHours: 0`**; **`+`** appends another (defaults **`UTC`**, offset **0**); **Remove** deletes one extra.
 
 ### 5.2 Tick vs DOM updates
 
@@ -115,6 +115,12 @@ Linting (ESLint/Prettier) is **not** wired in v1; optional follow-up.
 - **Filter:** `filteredIanaZones` merges shortcut matches + substring match on IANA; prepends **selected** only when it **matches the query** (or empty query / cap edge case) so unrelated zones do not jump to the top.
 - **Invalid IANA:** `normalizeIanaTimeZone` → **`UTC`** (silent fallback; no toast in v1).
 
+### 5.4 Display offset (hours)
+
+- **`buildClockSnapshots(now, localIana, localOffsetHours, extras)`** applies `shiftedInstant = now + offsetHours×1h` per face before `formatInstantInZone`.
+- **UI:** `<input type="number" min=-23 max=23 step=1>` per card; `change` updates state and re-runs `refreshTimesOnly` (no full row rebuild).
+- **Offset line:** when non-zero, `Intl` offset string is suffixed with **`· display ±N h`** for clarity.
+
 ---
 
 ## 6. Testing strategy
@@ -124,10 +130,10 @@ Linting (ESLint/Prettier) is **not** wired in v1; optional follow-up.
 | IANA helpers | `timeZone.test.ts` | List, validate, normalize, sort |
 | Formatting | `formatInZone.test.ts` | Zoned time/date/offset/abbreviation |
 | Shortcuts | `zoneShortcuts.test.ts` | EST/IST mapping, unique `abbr`, **every distinct shortcut IANA valid** |
-| State | `clocksState.test.ts` | Init, add, remove, set zone + injectable ids |
-| Snapshots | `clockSnapshots.test.ts` | Order local→extras, winter NY abbr class |
+| State | `clocksState.test.ts` | Init, add, remove, set zone, **offsets** (`clamp`, local + extra), injectable ids |
+| Snapshots | `clockSnapshots.test.ts` | Order local→extras, winter NY abbr, **shifted display** vs base |
 | Filter | `timeZoneOptions.test.ts` | Shortcuts order, EST/IST match, cap + prepend |
-| UI | `clockApp.test.ts` | Two cards on load, `+` adds third |
+| UI | `clockApp.test.ts` | Two cards on load, **two offset inputs**, `+` adds third |
 
 **Docker build** runs `npm test` so regressions block the image.
 
@@ -151,7 +157,7 @@ Linting (ESLint/Prettier) is **not** wired in v1; optional follow-up.
 ## 9. Known limitations & follow-ups
 
 - **Abbreviation ambiguity** outside the curated table (e.g. multiple “CST” meanings) is only resolved for rows present in `ZONE_SHORTCUTS`.
-- **No persistence** (see PRD M4): refresh loses extra clocks except defaults.
+- **No persistence** (see PRD M4): refresh loses extra clocks and **display offsets** (reset to defaults).
 - **No ESLint/CI workflow** in repo yet; tests are the primary gate in Docker build.
 
 ---

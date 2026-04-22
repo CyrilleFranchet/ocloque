@@ -57,3 +57,9 @@
 - Added [`docs/TECH-PLAN.md`](./TECH-PLAN.md) as the implementation-level technical plan (stack, modules, tests, Docker).
 - Updated [`docs/PRD.md`](./PRD.md): status **Implemented (v1)**, locked decisions, milestones marked done, FR/UX aligned with shipped behavior; summary §7 points to TECH-PLAN.
 - README links to TECH-PLAN.
+
+### Display offset (hours)
+
+- State: `localOffsetHours` + per-extra `offsetHours` (clamped −23…+23); `setLocalOffsetHours`, `setZonedClockOffsetHours`.
+- `buildClockSnapshots` shifts the instant before `Intl` formatting; offset hint on the offset line when ≠ 0.
+- UI: number input on local and each extra card; PRD §5.3 / TECH-PLAN §5.4 updated.

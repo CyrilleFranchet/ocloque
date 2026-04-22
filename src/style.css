@@ -177,6 +177,27 @@ body {
   outline-offset: 2px;
 }
 
+.offset-hours-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.offset-hours {
+  width: 100%;
+  max-width: 8rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  padding: 0.4rem 0.5rem;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
 @media (max-width: 640px) {
   .ocloque-row {
     flex-direction: column;

@@ -14,12 +14,24 @@ export type ClockFaceSnapshot = {
   abbreviation: string;
 };
 
+function shiftedInstant(instant: Date, offsetHours: number): Date {
+  return new Date(instant.getTime() + offsetHours * 3_600_000);
+}
+
+function withDisplayOffsetNote(offsetLabel: string, offsetHours: number): string {
+  if (offsetHours === 0) return offsetLabel;
+  const sign = offsetHours > 0 ? '+' : '';
+  return `${offsetLabel} · display ${sign}${offsetHours} h`;
+}
+
 export function buildClockSnapshots(
   instant: Date,
   localIanaTimeZone: string,
-  extraClocks: { id: string; ianaTimeZone: string }[],
+  localOffsetHours: number,
+  extraClocks: { id: string; ianaTimeZone: string; offsetHours: number }[],
 ): ClockFaceSnapshot[] {
-  const local = formatInstantInZone(instant, localIanaTimeZone);
+  const localInstant = shiftedInstant(instant, localOffsetHours);
+  const local = formatInstantInZone(localInstant, localIanaTimeZone);
   const localAbbr = local.abbreviation || local.timeZoneId;
   const localFace: ClockFaceSnapshot = {
     id: 'local',
@@ -29,12 +41,13 @@ export function buildClockSnapshots(
     zoneId: local.timeZoneId,
     time: local.time,
     dateLong: local.dateLong,
-    offsetLabel: local.offsetLabel,
+    offsetLabel: withDisplayOffsetNote(local.offsetLabel, localOffsetHours),
     abbreviation: localAbbr,
   };
 
   const extras = extraClocks.map((c) => {
-    const z = formatInstantInZone(instant, c.ianaTimeZone);
+    const j = shiftedInstant(instant, c.offsetHours);
+    const z = formatInstantInZone(j, c.ianaTimeZone);
     const abbr = z.abbreviation || z.timeZoneId;
     return {
       id: c.id,
@@ -44,7 +57,7 @@ export function buildClockSnapshots(
       zoneId: c.ianaTimeZone,
       time: z.time,
       dateLong: z.dateLong,
-      offsetLabel: z.offsetLabel,
+      offsetLabel: withDisplayOffsetNote(z.offsetLabel, c.offsetHours),
       abbreviation: abbr,
     };
   });

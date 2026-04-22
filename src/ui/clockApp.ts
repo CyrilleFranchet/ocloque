@@ -3,9 +3,12 @@ import {
   addZonedClock,
   createInitialClocksState,
   removeZonedClock,
+  setLocalOffsetHours,
+  setZonedClockOffsetHours,
   setZonedClockTimeZone,
   type ClocksState,
   type IdGenerator,
+  type ZonedClock,
 } from '../state/clocksState';
 import { formatTimeZoneAbbreviation } from '../time/formatInZone';
 import { listIanaTimeZones } from '../time/timeZone';
@@ -28,6 +31,11 @@ function escapeAttr(value: string): string {
     return CSS.escape(value);
   }
   return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+}
+
+function parseOffsetInput(value: string): number {
+  const v = Number.parseInt(value, 10);
+  return Number.isFinite(v) ? v : 0;
 }
 
 export function createClockApp(root: HTMLElement, options: ClockAppOptions = {}): ClockAppHandle {
@@ -85,11 +93,21 @@ export function createClockApp(root: HTMLElement, options: ClockAppOptions = {})
       <p class="clock-time clock-numeric" aria-live="polite"></p>
       <p class="clock-date"></p>
       <p class="clock-offset"></p>
+      <label class="offset-hours-label">Display offset (hours)
+        <input type="number" class="offset-hours" min="-23" max="23" step="1" aria-label="Local display offset in whole hours" />
+      </label>
     `;
+    const offIn = article.querySelector<HTMLInputElement>('.offset-hours')!;
+    offIn.value = String(state.localOffsetHours);
+    offIn.addEventListener('change', () => {
+      state = setLocalOffsetHours(state, parseOffsetInput(offIn.value));
+      offIn.value = String(state.localOffsetHours);
+      refreshTimesOnly();
+    });
     return article;
   }
 
-  function buildExtraCard(clock: { id: string; ianaTimeZone: string }): HTMLElement {
+  function buildExtraCard(clock: ZonedClock): HTMLElement {
     const article = document.createElement('article');
     article.className = 'clock-card';
     article.dataset.clockId = clock.id;
@@ -100,6 +118,9 @@ export function createClockApp(root: HTMLElement, options: ClockAppOptions = {})
         </label>
         <label class="tz-select-label">Time zone
           <select class="tz-select"></select>
+        </label>
+        <label class="offset-hours-label">Display offset (hours)
+          <input type="number" class="offset-hours" min="-23" max="23" step="1" aria-label="Display offset in whole hours" />
         </label>
         <button type="button" class="clock-remove">Remove</button>
       </div>
@@ -112,9 +133,11 @@ export function createClockApp(root: HTMLElement, options: ClockAppOptions = {})
 
     const filterInput = article.querySelector<HTMLInputElement>('.tz-filter')!;
     const select = article.querySelector<HTMLSelectElement>('.tz-select')!;
+    const offIn = article.querySelector<HTMLInputElement>('.offset-hours')!;
     const removeBtn = article.querySelector<HTMLButtonElement>('.clock-remove')!;
 
     filterInput.value = filters.get(clock.id) ?? '';
+    offIn.value = String(clock.offsetHours);
     fillSelect(select, clock.id, clock.ianaTimeZone);
 
     filterInput.addEventListener('input', () => {
@@ -129,6 +152,13 @@ export function createClockApp(root: HTMLElement, options: ClockAppOptions = {})
       if (updated) select.value = updated;
       refreshTimesOnly();
       fillSelect(select, clock.id, updated ?? select.value);
+    });
+
+    offIn.addEventListener('change', () => {
+      state = setZonedClockOffsetHours(state, clock.id, parseOffsetInput(offIn.value));
+      const h = state.extraClocks.find((c) => c.id === clock.id)?.offsetHours ?? 0;
+      offIn.value = String(h);
+      refreshTimesOnly();
     });
 
     removeBtn.addEventListener('click', () => {
@@ -152,7 +182,7 @@ export function createClockApp(root: HTMLElement, options: ClockAppOptions = {})
   function refreshTimesOnly(): void {
     const instant = getNow();
     const localZone = getLocalTimeZone();
-    const snaps = buildClockSnapshots(instant, localZone, state.extraClocks);
+    const snaps = buildClockSnapshots(instant, localZone, state.localOffsetHours, state.extraClocks);
     for (const s of snaps) {
       const el = row.querySelector<HTMLElement>(`[data-clock-id="${escapeAttr(s.id)}"]`);
       if (!el) continue;
