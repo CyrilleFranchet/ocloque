@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { isValidIanaTimeZone } from './timeZone';
 import { ZONE_SHORTCUTS, shortcutSelectLabel } from './zoneShortcuts';
 
 describe('ZONE_SHORTCUTS', () => {
@@ -12,13 +13,28 @@ describe('ZONE_SHORTCUTS', () => {
     const abbrs = ZONE_SHORTCUTS.map((s) => s.abbr.toUpperCase());
     expect(new Set(abbrs).size).toBe(abbrs.length);
   });
+
+  it('only references valid IANA identifiers', () => {
+    const ianas = [...new Set(ZONE_SHORTCUTS.map((s) => s.iana))];
+    for (const z of ianas) {
+      expect(isValidIanaTimeZone(z)).toBe(true);
+    }
+  });
 });
 
 describe('shortcutSelectLabel', () => {
-  it('includes the table abbreviation for US Eastern', () => {
+  it('merges winter and summer abbreviations for US Eastern', () => {
     const label = shortcutSelectLabel('America/New_York');
     expect(label).toContain('EST');
+    expect(label).toContain('EDT');
     expect(label).toContain('America/New_York');
+  });
+
+  it('merges GMT and BST for London', () => {
+    const label = shortcutSelectLabel('Europe/London');
+    expect(label).toContain('GMT');
+    expect(label).toContain('BST');
+    expect(label).toContain('Europe/London');
   });
 
   it('returns null for zones not in the shortcut table', () => {

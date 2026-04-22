@@ -46,3 +46,8 @@
 - Clock cards show **abbr + IANA**; the select lists **`ABBR — IANA`** options.
 - Added `src/time/zoneShortcuts.ts` (EST, IST, PST, … → canonical IANA) and `filteredIanaZones` so the filter matches abbreviations and shortcut descriptions.
 - PRD and README updated accordingly.
+
+### Expanded abbreviation shortcuts
+
+- Large curated `ZONE_SHORTCUTS` (Americas, Europe, Africa, Middle East, Asia, Oceania) with STD/DST pairs on the same IANA where useful; `shortcutSelectLabel` merges aliases (e.g. `EST / EDT — …`).
+- Vitest asserts every distinct shortcut `iana` is valid via `isValidIanaTimeZone`.

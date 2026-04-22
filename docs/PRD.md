@@ -79,7 +79,7 @@ A **single web page** served from a **Dockerized web server** that displays:
 
 - Use **IANA time zone identifiers** as the stored value and for all `Intl` calculations (e.g. `America/Los_Angeles`).
 - Picker can be: searchable `<select>` populated from `Intl.supportedValuesOf('timeZone')` where available, or a curated list + “Other…” for v1.
-- **Civil abbreviations (EST, IST, PST, …):** the UI shows a **short zone name** from `Intl` (e.g. `EST`, `IST`) as the primary clock title, with the **IANA id** on a second line. The picker lists **shortcut rows** (e.g. “EST — US Eastern” → `America/New_York`) so users can search by abbreviation or region name; each shortcut maps to **one** canonical IANA zone (documented in code). Ambiguous tokens (e.g. **CST** for US Central vs other regions) are resolved by explicit shortcut descriptions, not by guessing from the abbreviation alone.
+- **Civil abbreviations (EST, IST, PST, …):** the UI shows a **short zone name** from `Intl` (e.g. `EST`, `IST`) as the primary clock title, with the **IANA id** on a second line. The picker lists a **curated shortcut table** (US/Canada STD+DST pairs, UK GMT/BST, EU CET/CEST, major hubs in Latin America, Africa, Middle East, Asia, Oceania, etc.) so users can search by classic tokens; **several abbreviations may map to the same IANA** (e.g. EST+EDT → `America/New_York`), merged into one picker line. Mexico uses **MEX** (not **CST**) to avoid clashing with US Central. **EGY** is used for Egypt instead of overloading **EET**. Every shortcut IANA is validated in unit tests.
 
 ### 5.3 Docker delivery
 
