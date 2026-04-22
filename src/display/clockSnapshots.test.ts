@@ -59,16 +59,17 @@ describe('buildClockSnapshots', () => {
     expect(pin[1].ianaCaption).toContain('fixed time');
   });
 
-  it('uses local pin independently', () => {
+  it('uses local pin independently and aligns live extra to the pinned instant', () => {
     const instant = new Date('2024-06-15T12:00:00.000Z');
     const pinned = Date.UTC(2019, 5, 1, 6, 30, 0);
-    const anchor = instant.getTime();
     const a = buildClockSnapshots(instant, 'UTC', null, [utcExtra('c1')], null);
-    const b = buildClockSnapshots(instant, 'UTC', pinned, [utcExtra('c1')], anchor);
+    const b = buildClockSnapshots(instant, 'UTC', pinned, [utcExtra('c1')], pinned);
     expect(a[0].time).not.toBe(b[0].time);
     expect(b[0].displayMode).toBe('pinned');
     expect(b[0].ianaCaption).toContain('fixed time');
-    expect(b[1].time).toBe(a[1].time);
+    const refExtra = buildClockSnapshots(new Date(pinned), 'UTC', null, [utcExtra('c1')], null)[1];
+    expect(b[1].time).toBe(refExtra.time);
+    expect(b[1].dateLong).toBe(refExtra.dateLong);
   });
 
   it('uses the same instant for all live faces when a live anchor is set', () => {

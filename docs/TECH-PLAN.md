@@ -69,7 +69,7 @@ flowchart TB
       zoneShortcuts.ts    # ZONE_SHORTCUTS, shortcutSelectLabel
       wallTimePin.ts      # Luxon wall date/time ↔ UTC ms for pins
     state/
-      clocksState.ts      # pins + liveAnchorUtcMs; finalizeClocksState on transitions
+      clocksState.ts      # pins + liveAnchorUtcMs; finalizeClocksState(prev, base, now, anchorUpdate)
     display/
       clockSnapshots.ts   # buildClockSnapshots(realNow, localIana, localPin, extras, liveAnchor)
     ui/
@@ -103,7 +103,7 @@ Linting (ESLint/Prettier) is **not** wired in v1; optional follow-up.
 
 - **Local** clock: `Intl.DateTimeFormat().resolvedOptions().timeZone`; not removable. **`localPinnedUtcMs`** (`null` = live) fixes the **displayed** instant for that card.
 - **Extra** clocks: `{ id, ianaTimeZone, pinnedUtcMs }[]`; default **`UTC`** with **`pinnedUtcMs: null`**; **`+`** appends another; **Remove** deletes one extra.
-- **`liveAnchorUtcMs`:** when **any** pin exists, unpinned faces format this instant (captured when the first pin appears) instead of `Date.now()`, so other live clocks **do not move** when one pinned time is edited. Cleared when all pins are removed (`finalizeClocksState`).
+- **`liveAnchorUtcMs`:** when **any** pin exists, unpinned faces format this instant instead of `Date.now()`. On **apply / change pin**, the anchor becomes that face’s new **`pinnedUtcMs`** so live clocks **stay aligned** with the edited moment; on **unpin** or **remove clock**, `finalizeClocksState` uses **`recompute`** (`pickFirstPinnedUtcMs`); add/zone changes use **`preserve`**. Cleared when all pins are removed.
 
 ### 5.2 Tick vs DOM updates
 
@@ -120,7 +120,7 @@ Linting (ESLint/Prettier) is **not** wired in v1; optional follow-up.
 
 ### 5.4 Manual wall time (Luxon)
 
-- **`buildClockSnapshots(realNow, localIana, localPinnedUtcMs, extras, liveAnchorUtcMs)`** passes **`new Date(pinnedUtcMs)`** for pinned faces; for live faces **`new Date(liveAnchorUtcMs ?? realNow)`** (anchor freezes shared “now” for all unpinned clocks while any pin is on).
+- **`buildClockSnapshots(realNow, localIana, localPinnedUtcMs, extras, liveAnchorUtcMs)`** passes **`new Date(pinnedUtcMs)`** for pinned faces; for live faces **`new Date(liveAnchorUtcMs ?? realNow)`** (anchor tracks the current pin edit so all unpinned clocks show the same world instant while any pin is on).
 - **UI:** per card, **date** (`type="date"`), **hour** (0–23), **minute** (0–59), **Apply** → `wallTimeToUtcMs(zone, parts)`; invalid DST gaps → `alert`. **Use live time** clears the pin.
 - **IANA line:** when pinned, caption includes **`· fixed time`**.
 

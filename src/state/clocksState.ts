@@ -15,8 +15,9 @@ export type ClocksState = {
   localPinnedUtcMs: number | null;
   extraClocks: ZonedClock[];
   /**
-   * While any pin is active, unpinned (“live”) faces format this instant instead of real time
-   * so changing one pin does not advance other live clocks.
+   * While any pin is active, unpinned (“live”) faces format this UTC instant instead of real time.
+   * It is set to the pinned instant when a pin is applied or changed, recomputed when pins are removed,
+   * and preserved across add/zone changes so live faces stay aligned with the edited moment.
    */
   liveAnchorUtcMs: number | null;
 };
@@ -27,17 +28,37 @@ export function hasAnyPin(s: ClocksState): boolean {
   return s.localPinnedUtcMs != null || s.extraClocks.some((c) => c.pinnedUtcMs != null);
 }
 
+export function pickFirstPinnedUtcMs(s: ClocksState): number | null {
+  if (s.localPinnedUtcMs != null) return s.localPinnedUtcMs;
+  for (const c of s.extraClocks) {
+    if (c.pinnedUtcMs != null) return c.pinnedUtcMs;
+  }
+  return null;
+}
+
+type LiveAnchorUpdate = 'preserve' | 'recompute' | number;
+
 /** Recompute `liveAnchorUtcMs` after a state transition (pass `Date.now()` or `getNow().getTime()` from the UI). */
-export function finalizeClocksState(prev: ClocksState, base: ClocksState, nowMs: number): ClocksState {
-  const nextPins = hasAnyPin(base);
-  const prevPins = hasAnyPin(prev);
-  let liveAnchorUtcMs: number | null;
-  if (!nextPins) {
-    liveAnchorUtcMs = null;
-  } else if (!prevPins) {
-    liveAnchorUtcMs = nowMs;
+export function finalizeClocksState(
+  prev: ClocksState,
+  base: ClocksState,
+  nowMs: number,
+  anchorUpdate: LiveAnchorUpdate,
+): ClocksState {
+  if (!hasAnyPin(base)) {
+    return { ...base, liveAnchorUtcMs: null };
+  }
+  let liveAnchorUtcMs: number;
+  if (typeof anchorUpdate === 'number') {
+    liveAnchorUtcMs = anchorUpdate;
+  } else if (anchorUpdate === 'recompute') {
+    const p = pickFirstPinnedUtcMs(base);
+    if (p == null) {
+      throw new Error('finalizeClocksState: hasAnyPin but pickFirstPinnedUtcMs is null');
+    }
+    liveAnchorUtcMs = p;
   } else {
-    liveAnchorUtcMs = prev.liveAnchorUtcMs ?? nowMs;
+    liveAnchorUtcMs = prev.liveAnchorUtcMs ?? pickFirstPinnedUtcMs(base) ?? nowMs;
   }
   return { ...base, liveAnchorUtcMs };
 }
@@ -56,7 +77,9 @@ export function setLocalPinnedUtcMs(
   nowMs: number,
 ): ClocksState {
   const base = { ...state, localPinnedUtcMs: pinnedUtcMs };
-  return finalizeClocksState(state, base, nowMs);
+  const anchorUpdate: LiveAnchorUpdate =
+    pinnedUtcMs != null ? pinnedUtcMs : 'recompute';
+  return finalizeClocksState(state, base, nowMs, anchorUpdate);
 }
 
 export function addZonedClock(
@@ -70,7 +93,7 @@ export function addZonedClock(
     ...state,
     extraClocks: [...state.extraClocks, { id: generateId(), ianaTimeZone: zone, pinnedUtcMs: null }],
   };
-  return finalizeClocksState(state, base, nowMs);
+  return finalizeClocksState(state, base, nowMs, 'preserve');
 }
 
 export function removeZonedClock(state: ClocksState, id: string, nowMs: number): ClocksState {
@@ -78,7 +101,7 @@ export function removeZonedClock(state: ClocksState, id: string, nowMs: number):
     ...state,
     extraClocks: state.extraClocks.filter((c) => c.id !== id),
   };
-  return finalizeClocksState(state, base, nowMs);
+  return finalizeClocksState(state, base, nowMs, 'recompute');
 }
 
 export function setZonedClockTimeZone(
@@ -92,7 +115,7 @@ export function setZonedClockTimeZone(
     ...state,
     extraClocks: state.extraClocks.map((c) => (c.id === id ? { ...c, ianaTimeZone: zone } : c)),
   };
-  return finalizeClocksState(state, base, nowMs);
+  return finalizeClocksState(state, base, nowMs, 'preserve');
 }
 
 export function setZonedClockPinnedUtcMs(
@@ -105,5 +128,7 @@ export function setZonedClockPinnedUtcMs(
     ...state,
     extraClocks: state.extraClocks.map((c) => (c.id === id ? { ...c, pinnedUtcMs } : c)),
   };
-  return finalizeClocksState(state, base, nowMs);
+  const anchorUpdate: LiveAnchorUpdate =
+    pinnedUtcMs != null ? pinnedUtcMs : 'recompute';
+  return finalizeClocksState(state, base, nowMs, anchorUpdate);
 }

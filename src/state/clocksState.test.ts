@@ -30,24 +30,37 @@ describe('createInitialClocksState', () => {
 });
 
 describe('finalizeClocksState / live anchor', () => {
-  it('sets anchor on first pin and clears when last pin removed', () => {
+  it('sets anchor to pinned instant on first pin and clears when last pin removed', () => {
     const gen = idSeq();
     let state = createInitialClocksState(gen);
     expect(hasAnyPin(state)).toBe(false);
     state = setZonedClockPinnedUtcMs(state, state.extraClocks[0].id, T, 5_000);
-    expect(state.liveAnchorUtcMs).toBe(5_000);
+    expect(state.liveAnchorUtcMs).toBe(T);
     state = setZonedClockPinnedUtcMs(state, state.extraClocks[0].id, null, 6_000);
     expect(state.liveAnchorUtcMs).toBeNull();
   });
 
-  it('keeps anchor when changing an existing pin', () => {
+  it('updates anchor when the pinned instant changes', () => {
     const gen = idSeq();
     let state = createInitialClocksState(gen);
     const id = state.extraClocks[0].id;
     state = setZonedClockPinnedUtcMs(state, id, T, 100);
-    expect(state.liveAnchorUtcMs).toBe(100);
+    expect(state.liveAnchorUtcMs).toBe(T);
     state = setZonedClockPinnedUtcMs(state, id, T + 99, 200);
-    expect(state.liveAnchorUtcMs).toBe(100);
+    expect(state.liveAnchorUtcMs).toBe(T + 99);
+  });
+
+  it('recomputes anchor from remaining pins when one extra is unpinned', () => {
+    const gen = idSeq();
+    let state = createInitialClocksState(gen);
+    const id0 = state.extraClocks[0].id;
+    state = addZonedClock(state, gen, 'Europe/Paris', 0);
+    const id1 = state.extraClocks[1].id;
+    state = setZonedClockPinnedUtcMs(state, id0, T, 1);
+    state = setZonedClockPinnedUtcMs(state, id1, T + 1_000, 2);
+    expect(state.liveAnchorUtcMs).toBe(T + 1_000);
+    state = setZonedClockPinnedUtcMs(state, id1, null, 3);
+    expect(state.liveAnchorUtcMs).toBe(T);
   });
 });
 

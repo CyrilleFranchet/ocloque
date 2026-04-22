@@ -63,5 +63,5 @@
 - Removed whole-hour **offset** controls; added **date + hour + minute** in the clock’s zone, **Apply** / **Use live time**, using **Luxon** (`src/time/wallTimePin.ts`).
 - State: `localPinnedUtcMs` + per-extra `pinnedUtcMs`; `setLocalPinnedUtcMs`, `setZonedClockPinnedUtcMs`.
 - `buildClockSnapshots` uses pinned UTC ms when set; IANA caption shows **`· fixed time`** when pinned.
-- **`liveAnchorUtcMs`:** while any pin exists, live faces use the anchor instant so editing one pin does not move other clocks; cleared when all pins removed.
+- **`liveAnchorUtcMs`:** while any pin exists, live faces use this reference instant; it updates to the **new pinned UTC** when a time is applied or changed, so other live clocks stay in sync; `recompute` after unpin/remove if pins remain; cleared when all pins removed.
 - Docs (PRD §5.3, TECH-PLAN §5.4, README) updated; Vitest covers `wallTimePin` and snapshot pin behavior.
