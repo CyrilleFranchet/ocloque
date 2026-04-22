@@ -88,6 +88,10 @@ export function createClockApp(root: HTMLElement, options: ClockAppOptions = {})
   const allZones = listIanaTimeZones();
   const filters = new Map<string, string>();
 
+  const nowMs = (): number => getNow().getTime();
+  const referenceInstant = (): Date =>
+    state.liveAnchorUtcMs != null ? new Date(state.liveAnchorUtcMs) : getNow();
+
   const shell = document.createElement('div');
   shell.className = 'ocloque';
   shell.innerHTML = `
@@ -105,7 +109,7 @@ export function createClockApp(root: HTMLElement, options: ClockAppOptions = {})
   function fillSelect(select: HTMLSelectElement, clockId: string, selected: string): void {
     const q = filters.get(clockId) ?? '';
     const opts = filteredIanaZones(allZones, ZONE_SHORTCUTS, q, selected);
-    const instant = getNow();
+    const instant = referenceInstant();
     select.replaceChildren();
     for (const z of opts) {
       const o = document.createElement('option');
@@ -159,12 +163,12 @@ export function createClockApp(root: HTMLElement, options: ClockAppOptions = {})
         window.alert('Invalid date/time in this zone (e.g. DST gap).');
         return;
       }
-      state = setLocalPinnedUtcMs(state, ms);
+      state = setLocalPinnedUtcMs(state, ms, nowMs());
       fillPinFields(article, zone, state.localPinnedUtcMs);
       refreshTimesOnly();
     });
     clearBtn.addEventListener('click', () => {
-      state = setLocalPinnedUtcMs(state, null);
+      state = setLocalPinnedUtcMs(state, null, nowMs());
       fillPinFields(article, getLocalTimeZone(), null);
       refreshTimesOnly();
     });
@@ -211,7 +215,7 @@ export function createClockApp(root: HTMLElement, options: ClockAppOptions = {})
     });
 
     select.addEventListener('change', () => {
-      state = setZonedClockTimeZone(state, clock.id, select.value);
+      state = setZonedClockTimeZone(state, clock.id, select.value, nowMs());
       const updated = state.extraClocks.find((c) => c.id === clock.id)?.ianaTimeZone;
       if (updated) select.value = updated;
       fillPinFields(article, zoneNow(), pinNow());
@@ -243,18 +247,18 @@ export function createClockApp(root: HTMLElement, options: ClockAppOptions = {})
         window.alert('Invalid date/time in this zone (e.g. DST gap).');
         return;
       }
-      state = setZonedClockPinnedUtcMs(state, clock.id, ms);
+      state = setZonedClockPinnedUtcMs(state, clock.id, ms, nowMs());
       fillPinFields(article, zoneNow(), pinNow());
       refreshTimesOnly();
     });
     clearBtn.addEventListener('click', () => {
-      state = setZonedClockPinnedUtcMs(state, clock.id, null);
+      state = setZonedClockPinnedUtcMs(state, clock.id, null, nowMs());
       fillPinFields(article, zoneNow(), null);
       refreshTimesOnly();
     });
 
     removeBtn.addEventListener('click', () => {
-      state = removeZonedClock(state, clock.id);
+      state = removeZonedClock(state, clock.id, nowMs());
       filters.delete(clock.id);
       rebuildStructure();
     });
@@ -274,7 +278,13 @@ export function createClockApp(root: HTMLElement, options: ClockAppOptions = {})
   function refreshTimesOnly(): void {
     const instant = getNow();
     const localZone = getLocalTimeZone();
-    const snaps = buildClockSnapshots(instant, localZone, state.localPinnedUtcMs, state.extraClocks);
+    const snaps = buildClockSnapshots(
+      instant,
+      localZone,
+      state.localPinnedUtcMs,
+      state.extraClocks,
+      state.liveAnchorUtcMs,
+    );
     for (const s of snaps) {
       const el = row.querySelector<HTMLElement>(`[data-clock-id="${escapeAttr(s.id)}"]`);
       if (!el) continue;
@@ -292,7 +302,7 @@ export function createClockApp(root: HTMLElement, options: ClockAppOptions = {})
   }
 
   addBtn.addEventListener('click', () => {
-    state = addZonedClock(state, generateId, 'UTC');
+    state = addZonedClock(state, generateId, 'UTC', nowMs());
     rebuildStructure();
   });
 

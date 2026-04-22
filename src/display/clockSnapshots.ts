@@ -16,8 +16,14 @@ export type ClockFaceSnapshot = {
   displayMode: 'live' | 'pinned';
 };
 
-function instantForFace(now: Date, pinnedUtcMs: number | null): Date {
-  return pinnedUtcMs != null ? new Date(pinnedUtcMs) : now;
+function instantForFace(
+  realNow: Date,
+  liveAnchorUtcMs: number | null,
+  pinnedUtcMs: number | null,
+): Date {
+  if (pinnedUtcMs != null) return new Date(pinnedUtcMs);
+  const live = liveAnchorUtcMs != null ? new Date(liveAnchorUtcMs) : realNow;
+  return live;
 }
 
 function captionWithPin(ianaId: string, pinned: boolean): string {
@@ -25,12 +31,13 @@ function captionWithPin(ianaId: string, pinned: boolean): string {
 }
 
 export function buildClockSnapshots(
-  instant: Date,
+  realNow: Date,
   localIanaTimeZone: string,
   localPinnedUtcMs: number | null,
   extraClocks: { id: string; ianaTimeZone: string; pinnedUtcMs: number | null }[],
+  liveAnchorUtcMs: number | null,
 ): ClockFaceSnapshot[] {
-  const localInstant = instantForFace(instant, localPinnedUtcMs);
+  const localInstant = instantForFace(realNow, liveAnchorUtcMs, localPinnedUtcMs);
   const localPinned = localPinnedUtcMs != null;
   const local = formatInstantInZone(localInstant, localIanaTimeZone);
   const localAbbr = local.abbreviation || local.timeZoneId;
@@ -48,7 +55,7 @@ export function buildClockSnapshots(
   };
 
   const extras = extraClocks.map((c) => {
-    const j = instantForFace(instant, c.pinnedUtcMs);
+    const j = instantForFace(realNow, liveAnchorUtcMs, c.pinnedUtcMs);
     const pinned = c.pinnedUtcMs != null;
     const z = formatInstantInZone(j, c.ianaTimeZone);
     const abbr = z.abbreviation || z.timeZoneId;

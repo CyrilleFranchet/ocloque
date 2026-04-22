@@ -69,9 +69,9 @@ flowchart TB
       zoneShortcuts.ts    # ZONE_SHORTCUTS, shortcutSelectLabel
       wallTimePin.ts      # Luxon wall date/time ↔ UTC ms for pins
     state/
-      clocksState.ts      # localPinnedUtcMs + extras (iana + pinnedUtcMs)
+      clocksState.ts      # pins + liveAnchorUtcMs; finalizeClocksState on transitions
     display/
-      clockSnapshots.ts   # buildClockSnapshots(now, localIana, localPin, extras)
+      clockSnapshots.ts   # buildClockSnapshots(realNow, localIana, localPin, extras, liveAnchor)
     ui/
       clockApp.ts         # DOM, interval tick, select/filter wiring
       timeZoneOptions.ts  # filteredIanaZones
@@ -103,6 +103,7 @@ Linting (ESLint/Prettier) is **not** wired in v1; optional follow-up.
 
 - **Local** clock: `Intl.DateTimeFormat().resolvedOptions().timeZone`; not removable. **`localPinnedUtcMs`** (`null` = live) fixes the **displayed** instant for that card.
 - **Extra** clocks: `{ id, ianaTimeZone, pinnedUtcMs }[]`; default **`UTC`** with **`pinnedUtcMs: null`**; **`+`** appends another; **Remove** deletes one extra.
+- **`liveAnchorUtcMs`:** when **any** pin exists, unpinned faces format this instant (captured when the first pin appears) instead of `Date.now()`, so other live clocks **do not move** when one pinned time is edited. Cleared when all pins are removed (`finalizeClocksState`).
 
 ### 5.2 Tick vs DOM updates
 
@@ -119,7 +120,7 @@ Linting (ESLint/Prettier) is **not** wired in v1; optional follow-up.
 
 ### 5.4 Manual wall time (Luxon)
 
-- **`buildClockSnapshots(now, localIana, localPinnedUtcMs, extras)`** passes **`new Date(pinnedUtcMs)`** when a pin exists, otherwise **`now`**, into `formatInstantInZone` for that face.
+- **`buildClockSnapshots(realNow, localIana, localPinnedUtcMs, extras, liveAnchorUtcMs)`** passes **`new Date(pinnedUtcMs)`** for pinned faces; for live faces **`new Date(liveAnchorUtcMs ?? realNow)`** (anchor freezes shared “now” for all unpinned clocks while any pin is on).
 - **UI:** per card, **date** (`type="date"`), **hour** (0–23), **minute** (0–59), **Apply** → `wallTimeToUtcMs(zone, parts)`; invalid DST gaps → `alert`. **Use live time** clears the pin.
 - **IANA line:** when pinned, caption includes **`· fixed time`**.
 

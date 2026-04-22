@@ -88,6 +88,7 @@ A **single web page** served from a **Dockerized web server** that displays:
 ### 5.3 Manual wall time (per face)
 
 - The user enters a **calendar date** and **time-of-day** interpreted in **that clock’s IANA zone** (or the browser’s local zone for the left card). **Apply** resolves them to a single UTC instant (via **Luxon**) and the face formats that instant with `Intl` until **Use live time** clears the pin.
+- While **any** pin is active, **all unpinned (“live”) faces** share a single **frozen “live” instant** captured at the moment the first pin was set, so **re-applying or editing one pinned time does not move** the other live clocks. When **every** pin is cleared, live faces follow real time again.
 - Pins are **display-only** and **not persisted** in v1 (refresh clears them).
 
 ### 5.4 Docker delivery
@@ -152,10 +153,11 @@ type ClockId = string; // uuid
 interface AppState {
   localPinnedUtcMs: number | null; // null = live local face
   extraClocks: Array<{ id: ClockId; ianaTimeZone: string; pinnedUtcMs: number | null }>;
+  liveAnchorUtcMs: number | null; // freezes unpinned faces while any pin exists
 }
 ```
 
-- **Initialization:** `localPinnedUtcMs = null`; one extra clock at **`UTC`** with `pinnedUtcMs = null`.
+- **Initialization:** `localPinnedUtcMs = null`, `liveAnchorUtcMs = null`; one extra clock at **`UTC`** with `pinnedUtcMs = null`.
 - **Add:** append `{ id, ianaTimeZone, pinnedUtcMs: null }` (default zone **`UTC`**).
 - **Remove:** filter by `id` (never remove `local`).
 
