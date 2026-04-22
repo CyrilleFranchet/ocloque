@@ -31,3 +31,11 @@
 - Updated `src/main.ts` and `src/style.css` for layout and theming.
 - Removed the initial scaffold-only Vitest file.
 - Next: Docker image and deployment docs.
+
+### Docker and docs
+
+- Added multi-stage `Dockerfile` (Node build runs `npm test` + `npm run build`, nginx Alpine serves `dist/`).
+- Added `nginx.conf` (gzip, SPA-style `try_files`).
+- Added `docker-compose.yml` mapping **8080 → 80**.
+- Added `.dockerignore` and root `README.md` with run instructions.
+- Status: feature-complete per PRD v1 (no persistence).
