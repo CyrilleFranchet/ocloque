@@ -8,6 +8,13 @@ export type ZoneShortcut = {
   iana: string;
 };
 
+/** Label for the picker when this IANA is a known shortcut (stable “EST”, “IST”, … vs Intl’s EDT / GMT-5). */
+export function shortcutSelectLabel(iana: string): string | null {
+  const s = ZONE_SHORTCUTS.find((x) => x.iana === iana);
+  if (!s) return null;
+  return `${s.abbr} — ${s.description} — ${iana}`;
+}
+
 export const ZONE_SHORTCUTS: readonly ZoneShortcut[] = [
   { abbr: 'UTC', description: 'Coordinated Universal Time', iana: 'UTC' },
   { abbr: 'GMT', description: 'United Kingdom (civil)', iana: 'Europe/London' },

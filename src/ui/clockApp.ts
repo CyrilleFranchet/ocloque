@@ -9,7 +9,7 @@ import {
 } from '../state/clocksState';
 import { formatTimeZoneAbbreviation } from '../time/formatInZone';
 import { listIanaTimeZones } from '../time/timeZone';
-import { ZONE_SHORTCUTS } from '../time/zoneShortcuts';
+import { ZONE_SHORTCUTS, shortcutSelectLabel } from '../time/zoneShortcuts';
 import { filteredIanaZones } from './timeZoneOptions';
 
 export type ClockAppOptions = {
@@ -63,8 +63,13 @@ export function createClockApp(root: HTMLElement, options: ClockAppOptions = {})
     for (const z of opts) {
       const o = document.createElement('option');
       o.value = z;
-      const abbr = formatTimeZoneAbbreviation(instant, z);
-      o.textContent = abbr && abbr !== z ? `${abbr} — ${z}` : z;
+      const fromShortcut = shortcutSelectLabel(z);
+      if (fromShortcut) {
+        o.textContent = fromShortcut;
+      } else {
+        const abbr = formatTimeZoneAbbreviation(instant, z);
+        o.textContent = abbr && abbr !== z ? `${abbr} — ${z}` : z;
+      }
       if (z === selected) o.selected = true;
       select.appendChild(o);
     }
