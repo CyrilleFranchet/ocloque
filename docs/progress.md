@@ -51,3 +51,9 @@
 
 - Large curated `ZONE_SHORTCUTS` (Americas, Europe, Africa, Middle East, Asia, Oceania) with STD/DST pairs on the same IANA where useful; `shortcutSelectLabel` merges aliases (e.g. `EST / EDT — …`).
 - Vitest asserts every distinct shortcut `iana` is valid via `isValidIanaTimeZone`.
+
+### PRD and technical plan sync
+
+- Added [`docs/TECH-PLAN.md`](./TECH-PLAN.md) as the implementation-level technical plan (stack, modules, tests, Docker).
+- Updated [`docs/PRD.md`](./PRD.md): status **Implemented (v1)**, locked decisions, milestones marked done, FR/UX aligned with shipped behavior; summary §7 points to TECH-PLAN.
+- README links to TECH-PLAN.

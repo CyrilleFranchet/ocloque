@@ -37,4 +37,5 @@ The image runs `npm test` during the build so broken tests block the image.
 ## Documentation
 
 - Product spec: [`docs/PRD.md`](docs/PRD.md)
+- Technical plan: [`docs/TECH-PLAN.md`](docs/TECH-PLAN.md)
 - Implementation log: [`docs/progress.md`](docs/progress.md)
