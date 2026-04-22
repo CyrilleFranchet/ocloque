@@ -22,3 +22,12 @@
 - Added `src/state/clocksState.ts`: immutable `createInitialClocksState`, `addZonedClock`, `removeZonedClock`, `setZonedClockTimeZone` with injectable `IdGenerator`.
 - Unit tests in `clocksState.test.ts`.
 - Next: UI layer, snapshot builder, and Docker image.
+
+### UI and display
+
+- Added `src/display/clockSnapshots.ts` plus tests: builds ordered snapshots for local + extra clocks.
+- Added `src/ui/timeZoneOptions.ts` plus tests: filters long IANA lists while keeping the current selection visible.
+- Added `src/ui/clockApp.ts` plus DOM tests: header with “+”, local card, extra cards with filter + select + remove, 1s tick without rebuilding selects each tick.
+- Updated `src/main.ts` and `src/style.css` for layout and theming.
+- Removed the initial scaffold-only Vitest file.
+- Next: Docker image and deployment docs.

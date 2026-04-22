@@ -1,6 +1,7 @@
+import { createClockApp } from './ui/clockApp';
 import './style.css';
 
-const root = document.querySelector<HTMLElement>('#app');
-if (root) {
-  root.textContent = 'Loading…';
+const appRoot = document.querySelector<HTMLElement>('#app');
+if (appRoot) {
+  createClockApp(appRoot);
 }
